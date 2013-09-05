@@ -20,7 +20,7 @@
       <x>398</x>
       <y>10</y>
       <width>161</width>
-      <height>351</height>
+      <height>321</height>
      </rect>
     </property>
    </widget>
@@ -71,6 +71,22 @@
     </property>
     <property name="text">
      <string>run</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="checkBox">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>340</y>
+      <width>111</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>some commands use these slots as calculation helpers, they are not interesting</string>
+    </property>
+    <property name="text">
+     <string>show e6 slots</string>
     </property>
    </widget>
   </widget>

@@ -169,6 +169,8 @@ void dump(Ui::MainWindow *ui)
     ui->listWidget->clear();
     if (mem.size())
     for (auto &v : mem)
+        if ((ui->checkBox->checkState() == Qt::Checked) ||
+                (v.first % 1000000 != 0 || v.first == 0))
         ui->listWidget->addItem(QString::number(v.first, 10) + " : " +
                     QString::number(v.second, 10));
 }
@@ -222,13 +224,13 @@ void init_macros()
                "zero -2 "
                "f_uadd_diff -2 -3 -4 "
                );
-    // -1 += -2 using 9999, 9999
+    // -1 += -2 using 1000000, 1000000
     push_macro("uadd", 2,
-               "f_uadd -1 -2 9999 99999"
+               "f_uadd -1 -2 1000000 2000000"
                );
-    // -1 = -2 using 9999, 99999
+    // -1 = -2 using 1000000, 2000000
     push_macro("set", 2,
-               "f_set -1 -2 9999 99999"
+               "f_set -1 -2 1000000 2000000"
                );
     // -1 -= -2 using -3, -4, -5
     push_macro("f_usub", 5,
@@ -237,9 +239,9 @@ void init_macros()
                "dec -1 4 "
                "goto 1 "
                );
-    // -1 -= -2 using 9999, 99999, 999999
+    // -1 -= -2 using 1000000, 2000000, 3000000
     push_macro("usub", 2,
-               "f_usub -1 -2 9999 99999 999999"
+               "f_usub -1 -2 1000000 2000000 3000000"
                );
     // -1 = -2 + -3, using -4, -5, -6, -7
     push_macro("f_add", 7,
@@ -249,9 +251,9 @@ void init_macros()
                "f_uadd -1 -4 -6 -7 "
                "f_uadd -1 -5 -6 -7 "
                );
-    // -1 = -2 + -3, using 9999, 99999
+    // -1 = -2 + -3, using 1000000, 2000000
     push_macro("add", 3,
-               "f_add -1 -2 -3 9999 99999 999999 9999999"
+               "f_add -1 -2 -3 1000000 2000000 3000000 4000000"
                );
     // -1 = -2 - -3, using -4, -5, -6, -7
     push_macro("f_sub", 7,
@@ -259,15 +261,57 @@ void init_macros()
                "f_usub -4 -3 -5 -6 -7 "
                "f_set -1 -4 -6 -7 "
                );
-    // -1 = -2 - -3, using 9999*: 1-4
+    // -1 = -2 - -3, using 1000000*: 1-4
     push_macro("sub", 3,
-               "f_sub -1 -2 -3 9999 99999 999999 9999999"
+               "f_sub -1 -2 -3 1000000 2000000 3000000 4000000"
                );
-    // -1 = -2 * -3, using 9999*:
-    push_macro("f_mul",
-               ""
+    // -1 = -2 * -3, using -4 ... -7
+    push_macro("f_mul", 7,
+               "f_set -4 -2 -6 -7 "
+               "zero -5 "
+               "dec -4 5"
+               "f_uadd -5 -3 -6 -7 "
+               "goto 2 "
+               "f_set -1 -5 -6 -7 ");
+    // -1 = -2 * -3, using 1000000*: 1-4
+    push_macro("mul", 3,
+               "f_mul -1 -2 -3 1000000 2000000 3000000 4000000"
+               );
+    // -1 = sgn(-2)
+    push_macro("sgn", 2,
+               "dec -2 5 "
+               "inc -2 "
+               "zero -1 "
+               "inc -1 "
+               "goto 6 "
+               "zero -1 "
+               );
+    // -1 = !-2
+    push_macro("neg", 2,
+               "sgn -1 -2 "
+               "dec -1 3"
+               "goto 4"
+               "inc -1 "
+               );
+    // -1 = -2 && -3, using -4, -5, -6, -7
+    push_macro("f_and", 7,
+               "f_mul -1 -2 -3 -4 -5 -6 -7 "
+               "sgn -1 -1 "
+               );
+    // -1 = -2 || -3, using -4, -5, -6, -7
+    push_macro("f_or", 7,
+               "f_add -1 -2 -3 -4 -5 -6 -7 "
+               "sgn -1 -1 "
+               );
+    // -1 = -2 && -3, using e6 x4
+    push_macro("and", 3,
+               "f_and -1 -2 -3 1000000 2000000 3000000 4000000"
+               );
+    // -1 = -2 || -3, using e6 x4
+    push_macro("or", 3,
+               "f_or -1 -2 -3 1000000 2000000 3000000 4000000"
+               );
 
-               )
     push_macro ("test", 0,
                 "inc 2 "
                 "inc 2 "
