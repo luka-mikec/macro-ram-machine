@@ -12,11 +12,19 @@ TARGET = mach
 TEMPLATE = app
 
 
-SOURCES += main.cpp\
-        mainwindow.cpp
+SOURCES += main.cpp \
+    ui_qt_main.cpp \
+    ui_qt_dialog.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += \
+    ui_qt_main.h \
+    ui_qt_dialog.h
 
-FORMS    += mainwindow.ui
+FORMS    += \
+    ui_qt_main.ui \
+    ui_qt_dialog.ui
 
 QMAKE_CXXFLAGS += -std=c++11
+
+OTHER_FILES += \
+    stdlib.mac
