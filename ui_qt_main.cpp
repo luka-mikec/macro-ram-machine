@@ -5,6 +5,7 @@
 #include <sstream>
 #include <fstream>
 #include <set>
+#include <stdexcept>
 
 using namespace std;
 
@@ -96,6 +97,7 @@ void compile()
 {
     stringstream in;
     bytecode.clear();
+    vars.clear();
 
     map<adress, adress> macro_to_actual;
     vector<adress> mark_points;
@@ -104,8 +106,19 @@ void compile()
     bool modified = false;
     while (prerun)
     {
-        macro_to_actual[i++] = cadress;
         string w; prerun >> w;
+
+        if (w != "//" && w != "")
+            macro_to_actual[i++] = cadress;
+        else
+        {
+            if (w == "//")
+            {
+                prerun.ignore(1000000, '\n');
+            }
+            continue;
+        }
+
         string tmp; int n = 0; // n = how many items do skip
         if (w == "mark")
         {
@@ -143,6 +156,8 @@ void compile()
         }
     }
 
+    macro_to_actual[i++] = cadress;
+
     in << sourcecode;
     /*if (modified) alert("", sourcecode, 0);*/
     // used_mem.clear(); // used_mem contains info about the last compilation
@@ -155,6 +170,7 @@ void compile()
         else if (act == "dec") newcomm.act = command::_dec;
         else if (act == "goto") newcomm.act = command::_goto;
         else if (act == "stop") newcomm.act = command::_stop;
+        else if (act == "//") {in.ignore(1000000, '\n'); continue;}
         else if (act != "") {
             inject_macro(in, act, macro_to_actual);
             continue;
@@ -213,6 +229,7 @@ void boot(QWidget *parent_wnd, Ui::MainWindow *ui)
 {
     command_pointer = 0;
     halt = false;
+    if (used_mem.size())
     for (auto &it : used_mem)
         mem[it] = 0;
 
@@ -261,28 +278,6 @@ void init_macros()
         }
         else libsrc += w + " ";
     }
-
-
-}
-
-
-
-void ui_compile(Ui::MainWindow *ui)
-{
-    sourcecode = ui->plainTextEdit->toPlainText().toStdString();
-    compile();
-}
-
-void ui_run(Ui::MainWindow *ui, QWidget *parent_wnd = 0)
-{
-    ui->pushButton_3->setText("Running...");
-    ui->pushButton_3->setEnabled(false);
-    QApplication::processEvents();
-    boot(parent_wnd, ui);
-    dump(ui);
-    ui->pushButton_3->setText("Run");
-    ui->pushButton_3->setEnabled(true);
-    QApplication::processEvents();
 }
 
 void alert(string ttl, string msg, QWidget *parent_wnd, bool fullblown)
@@ -296,6 +291,53 @@ void alert(string ttl, string msg, QWidget *parent_wnd, bool fullblown)
     else
     QMessageBox::about(parent_wnd, QString::fromStdString(ttl), QString::fromStdString(msg));
 }
+
+void ui_compile(Ui::MainWindow *ui, QWidget *parent_wnd = 0)
+{
+    try
+    {
+        sourcecode = ui->plainTextEdit->toPlainText().toStdString();
+        compile();
+    }
+    catch (out_of_range& err)
+    {
+        alert("Problem", string("Something is out of range,"
+              "probably too few arguments somewhere. If this means anything: ") + err.what(),
+              parent_wnd, false);
+    }
+    catch (string& str)
+    {
+        alert ("Problem", str, parent_wnd, false);
+    }
+}
+
+void ui_run(Ui::MainWindow *ui, QWidget *parent_wnd = 0)
+{
+    ui->pushButton_3->setText("Running...");
+    ui->pushButton_3->setEnabled(false);
+    QApplication::processEvents();
+    try
+    {
+        boot(parent_wnd, ui);
+    }
+    catch (out_of_range& err)
+    {
+        alert("Problem", string("Something is out of range,"
+              "probably too few arguments somewhere. If this means anything: ") + err.what(),
+              parent_wnd, false);
+    }
+    catch (string& str)
+    {
+        alert ("Problem", str, parent_wnd, false);
+    }
+
+    dump(ui);
+    ui->pushButton_3->setText("Run");
+    ui->pushButton_3->setEnabled(true);
+    QApplication::processEvents();
+}
+
+
 
 string bytecode_to_str(vector<command> &bc)
 {
@@ -360,7 +402,7 @@ void MainWindow::on_actionExit_triggered()
 
 void MainWindow::on_actionCompile_triggered()
 {
-    ui_compile(ui);
+    ui_compile(ui, this);
     alert("compiler", "full code:\n" + bytecode_to_str(bytecode), this);
 }
 
@@ -371,20 +413,20 @@ void MainWindow::on_actionRun_triggered()
 
 void MainWindow::on_actionCompile_Run_triggered()
 {
-    ui_compile(ui);
+    ui_compile(ui, this);
     ui_run(ui, this);
 }
 
 void MainWindow::on_pushButton_clicked()
 {
     //ui->listWidget->addItem("lol");
-    ui_compile(ui);
+    ui_compile(ui, this);
     ui_run(ui, this);
 }
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    ui_compile(ui);
+    ui_compile(ui, this);
     alert("compiler", "full code:\n" + bytecode_to_str(bytecode), this);
 }
 
