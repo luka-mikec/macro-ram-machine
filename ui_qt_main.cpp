@@ -4,6 +4,7 @@
 #include "QMessageBox"
 #include <sstream>
 #include <fstream>
+#include <set>
 
 using namespace std;
 
@@ -12,7 +13,10 @@ typedef int adress;
 
 struct macro;
 
-map<adress, number> mem;
+//map<adress, number> mem;
+unsigned int mem[100000000];
+set<adress> used_mem;
+
 map<adress, string> vars;
 map<string, macro>  macro_lib;
 
@@ -63,6 +67,10 @@ struct macro
                     comm.k = args.at(-comm.k - 1);
             else if (comm.act == command::_dec)
                     comm.k += line;
+
+            if (comm.act == command::_inc || comm.act == command::_dec)
+                if (comm.n > 0) // bad macros use less arguments
+                    used_mem.insert(comm.n);
 
             obj.push_back(comm);
         }
@@ -137,6 +145,7 @@ void compile()
 
     in << sourcecode;
     /*if (modified) alert("", sourcecode, 0);*/
+    // used_mem.clear(); // used_mem contains info about the last compilation
 
     while (in)
     {
@@ -160,6 +169,10 @@ void compile()
         if (newcomm.act == command::_dec && newcomm.k >= 0)
             newcomm.k = macro_to_actual[newcomm.k];
 
+        if (newcomm.act == command::_inc || newcomm.act == command::_dec)
+            if (newcomm.n >= 0)
+                used_mem.insert(newcomm.n);
+
         bytecode.push_back(newcomm);
     }
 }
@@ -181,18 +194,36 @@ void step()
     }
 }
 
-void boot(QWidget *parent_wnd = 0)
+
+void dump(Ui::MainWindow *ui)
+{
+    ui->listWidget->clear();
+    if (used_mem.size())
+    for (auto &v : used_mem)
+        if ((ui->checkBox->checkState() == Qt::Checked) ||
+                (v % 1000000 != 0 || v == 0))
+        ui->listWidget->addItem(
+                    QString::fromStdString(vars.find(v) != vars.end() ? vars[v] + "/" : "") +
+                    QString::number(v, 10) + " : " +
+                    QString::number(mem[v], 10));
+    QApplication::processEvents();
+}
+
+void boot(QWidget *parent_wnd, Ui::MainWindow *ui)
 {
     command_pointer = 0;
     halt = false;
-    mem.clear();
+    for (auto &it : used_mem)
+        mem[it] = 0;
 
     adress cmdcnt = 0;
     while (command_pointer < bytecode.size() && !halt)
     {
         step();
         ++cmdcnt;
-        if (cmdcnt % 70000000 == 0)
+        if (cmdcnt % 100000000 == 0)
+            dump(ui);
+        if (cmdcnt % 500000000 == 0)
         {
             if (QMessageBox::question(parent_wnd, "inf loop interceptor",
                                           "you might be headed for infinity, stop?")
@@ -200,19 +231,6 @@ void boot(QWidget *parent_wnd = 0)
                 break;
         }
     }
-}
-
-void dump(Ui::MainWindow *ui)
-{
-    ui->listWidget->clear();
-    if (mem.size())
-    for (auto &v : mem)
-        if ((ui->checkBox->checkState() == Qt::Checked) ||
-                (v.first % 1000000 != 0 || v.first == 0))
-        ui->listWidget->addItem(
-                    QString::fromStdString(vars.find(v.first) != vars.end() ? vars[v.first] + "/" : "") +
-                    QString::number(v.first, 10) + " : " +
-                    QString::number(v.second, 10));
 }
 
 void push_macro(string name, int argc, string source)
@@ -257,8 +275,14 @@ void ui_compile(Ui::MainWindow *ui)
 
 void ui_run(Ui::MainWindow *ui, QWidget *parent_wnd = 0)
 {
-    boot(parent_wnd);
+    ui->pushButton_3->setText("Running...");
+    ui->pushButton_3->setEnabled(false);
+    QApplication::processEvents();
+    boot(parent_wnd, ui);
     dump(ui);
+    ui->pushButton_3->setText("Run");
+    ui->pushButton_3->setEnabled(true);
+    QApplication::processEvents();
 }
 
 void alert(string ttl, string msg, QWidget *parent_wnd, bool fullblown)
