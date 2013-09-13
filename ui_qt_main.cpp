@@ -192,7 +192,7 @@ void boot(QWidget *parent_wnd = 0)
     {
         step();
         ++cmdcnt;
-        if (cmdcnt % 20000000 == 0)
+        if (cmdcnt % 70000000 == 0)
         {
             if (QMessageBox::question(parent_wnd, "inf loop interceptor",
                                           "you might be headed for infinity, stop?")
@@ -227,7 +227,7 @@ void push_macro(string name, int argc, string source)
 void init_macros()
 {
     // -1 += 'i'
-    string cache = ""; for (int i = 1; i <= 128; ++i)
+    string cache = ""; for (int i = 1; i <= 1024; ++i)
     push_macro("inc" + QString::number(i).toStdString(), 1, cache += " inc -1");
 
     fstream libloader("./stdlib.mac");
